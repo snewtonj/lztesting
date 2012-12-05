@@ -67,7 +67,7 @@ public class ElectionHandler implements LeaderSelectorListener {
 
 	public void stopProcessing() {
 		isLeader = false;	
-		logger.info("Reliquishing leader");
+		logger.info("Relinquishing leader");
 	}
 
 }
