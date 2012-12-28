@@ -75,7 +75,7 @@ public class LeaderElectorFrame extends JFrame implements ActionListener, Proper
 	}
 
 	public void propertyChange(PropertyChangeEvent evt) {
-		logger.info("Got property change event "+evt.getPropertyName());
+		logger.debug("Got property change event "+evt.getPropertyName());
 		String propertyName = evt.getPropertyName();
 		if ("state".equals(propertyName)) {
 			statusLabel.setText(evt.getNewValue().toString());
