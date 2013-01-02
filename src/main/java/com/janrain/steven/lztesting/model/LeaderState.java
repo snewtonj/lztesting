@@ -3,13 +3,13 @@ package com.janrain.steven.lztesting.model;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 
-public class LeaderStateBean {
+public class LeaderState {
 	private boolean isQueued;
 	private boolean isLeader;
 	private String state;
 	private PropertyChangeSupport changeSupport;
 	
-	public LeaderStateBean() {
+	public LeaderState() {
 		changeSupport = new PropertyChangeSupport(this);
 	}
 	
@@ -41,6 +41,15 @@ public class LeaderStateBean {
 		String oldState = this.state;
 		this.state = state;
 		changeSupport.firePropertyChange("state", oldState, this.state);
+	}
+
+	public boolean requeue() {
+		changeSupport.firePropertyChange("requeue", !this.isQueued, this.isQueued);
+		return this.isQueued;
+	}
+
+	public void stopProcessing() {
+		changeSupport.firePropertyChange("processing", true, false);
 	}
 
 }

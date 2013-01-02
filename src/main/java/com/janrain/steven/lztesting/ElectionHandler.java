@@ -1,33 +1,34 @@
 package com.janrain.steven.lztesting;
 
-import java.util.Random;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 
-import javax.swing.UIManager;
-
-import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
-import com.janrain.steven.lztesting.model.LeaderStateBean;
-import com.janrain.steven.lztesting.ui.LeaderElectorFrame;
+import com.janrain.steven.lztesting.model.LeaderState;
+import com.janrain.steven.lztesting.ui.LeaderElectorPanel;
 import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.leader.LeaderSelector;
 import com.netflix.curator.framework.recipes.leader.LeaderSelectorListener;
 import com.netflix.curator.framework.state.ConnectionState;
-import com.netflix.curator.retry.ExponentialBackoffRetry;
 
-public class ElectionHandler implements LeaderSelectorListener {
+public class ElectionHandler implements LeaderSelectorListener, PropertyChangeListener {
 
-	private static ElectionHandler eh;
-	private static LeaderSelector leaderSelector;
-	private static LeaderElectorFrame ui;
-	private static String id;
+	private LeaderSelector leaderSelector;
+	private String id;
 	private static final Logger logger = Logger.getLogger(ElectionHandler.class);
 	private volatile boolean continueProcessing;
-	private LeaderStateBean stateBean;
+	private LeaderState stateBean;
+	private LeaderElectorPanel uiPanel;
 	
-	public ElectionHandler(LeaderStateBean stateBean) {
+	public ElectionHandler(LeaderState stateBean, LeaderElectorPanel lep, CuratorFramework client, int clientIdNumber) {
 		this.stateBean = stateBean;
+		this.uiPanel = lep;
+		this.uiPanel.addPropertyChangeListener(this);
+		String leaderPath = "/" + ElectionHandler.class.getSimpleName();
+		this.id = leaderPath+ " #"+ clientIdNumber;
+		leaderSelector = new LeaderSelector(client, leaderPath, this);
+		leaderSelector.setId(this.id);
 	}
 
 	public void stateChanged(CuratorFramework cf, ConnectionState state) {
@@ -49,47 +50,15 @@ public class ElectionHandler implements LeaderSelectorListener {
 	public void takeLeadership(CuratorFramework cf) throws Exception {
 		logger.info(id+" Elected leader");
 		continueProcessing = true;
-		stateBean.setLeader(continueProcessing);
+		stateBean.setLeader(true);
+		uiPanel.setLeader(true);
 		while(continueProcessing) {
 			Thread.sleep(3333);
 			logger.info(id+" still leader? "+ leaderSelector.hasLeadership());
 		}
+		stateBean.setLeader(false);
+		uiPanel.setLeader(false);
 		logger.info(id+ " Lost leader");
-	}
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		final LeaderStateBean stateBean = new LeaderStateBean();
-		eh = new ElectionHandler(stateBean);
-		byte[] binaryData = new byte[3];
-		new Random().nextBytes(binaryData);
-		
-        id = Base64.encodeBase64URLSafeString(binaryData);
-		javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                createAndShowGUI(stateBean, id);
-            }
-        });
-        CuratorFramework client = CuratorFrameworkFactory.newClient("bp-dev:2181", new ExponentialBackoffRetry(333, 3));
-        client.start();
-        leaderSelector = new LeaderSelector(client, "/"+ElectionHandler.class.getSimpleName(), eh);
-        leaderSelector.setId(id);
-//        leaderSelector.autoRequeue();
-        leaderSelector.start();
-	}
-
-	private static void createAndShowGUI(LeaderStateBean lsBean, String id)  {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e) {
-			System.err.println("Well that sucks, falling back to generic Java LookAndFeel");
-		}
-		ui = new LeaderElectorFrame(eh, id);
-		lsBean.addPropertyChangeListener(ui);
-		ui.pack();
-		ui.setVisible(true);
 	}
 
 	public void shutdown() {
@@ -109,6 +78,23 @@ public class ElectionHandler implements LeaderSelectorListener {
 		boolean isQueued = leaderSelector.requeue();
 		stateBean.setQueued(isQueued);
 		return isQueued;
+	}
+
+	public void propertyChange(PropertyChangeEvent evt) {
+		String propertyName = evt.getPropertyName();
+		if ("processing".equals(propertyName)) {
+			Boolean isProcessing = (Boolean) evt.getNewValue();
+			if (!isProcessing) {
+				stopProcessing();
+			}
+		}
+		if ("requeue".equals(propertyName)) {
+			requeue();
+		}
+	}
+
+	public void start() {
+		leaderSelector.start();
 	}
 
 }
