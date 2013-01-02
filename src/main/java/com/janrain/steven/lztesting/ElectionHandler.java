@@ -34,13 +34,15 @@ public class ElectionHandler implements LeaderSelectorListener, PropertyChangeLi
 	public void stateChanged(CuratorFramework cf, ConnectionState state) {
 		logger.info(id+" State Changed: "+state);
 		stateBean.setState(state.name());
+		uiPanel.setState(state.name());
 		switch (state) {
 		case SUSPENDED:
 			continueProcessing = false;
 			stateBean.setLeader(continueProcessing);
 			break;
 		case LOST:
-			leaderSelector.close();
+			continueProcessing = false;
+//			leaderSelector.close();
 			//System.exit(ConnectionState.LOST.ordinal());
 		default:
 			break;

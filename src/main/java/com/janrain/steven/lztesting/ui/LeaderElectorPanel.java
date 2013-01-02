@@ -116,4 +116,8 @@ public class LeaderElectorPanel extends JPanel implements PropertyChangeListener
 		
 	}
 
+	public void setState(String name) {
+		statusLabel.setText(name);		
+	}
+
 }
