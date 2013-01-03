@@ -33,7 +33,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>com.janrain.steven.lztesting.ElectionHandler</mainClass>
+							<mainClass>com.janrain.steven.lztesting.LeaderElectionMain</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
